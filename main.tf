@@ -3481,7 +3481,7 @@ module "vault" {
   create_release = var.create_kubernetes_resources
 
   # https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/charts/secrets-store-csi-driver-provider-aws/Chart.yaml
-  name             = try(var.vault.name, "secrets-store-csi-driver-provider-aws")
+  name             = try(var.vault.name, "vault")
   description      = try(var.vault.description, "A Helm chart to install the Hashcorp vault with the banzaicloud operator inside a Kubernetes cluster.")
   namespace        = try(var.vault.namespace, "vault")
   create_namespace = try(var.vault.create_namespace, false)
