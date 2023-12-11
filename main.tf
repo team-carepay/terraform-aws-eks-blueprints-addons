@@ -3480,7 +3480,7 @@ module "vault" {
   # Disable helm release
   create_release = var.create_kubernetes_resources
 
-  # https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/charts/secrets-store-csi-driver-provider-aws/Chart.yaml
+  # https://bitbucket.org/carepaydev/helm-charts/src/master/charts/vault-cluster 
   name             = try(var.vault.name, "vault")
   description      = try(var.vault.description, "A Helm chart to install the Hashcorp vault with the banzaicloud operator inside a Kubernetes cluster.")
   namespace        = try(var.vault.namespace, "vault")
