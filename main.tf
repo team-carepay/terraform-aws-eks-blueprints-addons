@@ -17,7 +17,6 @@ resource "time_sleep" "this" {
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  dns_suffix = data.aws_partition.current.dns_suffix
   partition  = data.aws_partition.current.partition
   region     = data.aws_region.current.name
 
@@ -84,7 +83,7 @@ module "argo_rollouts" {
   namespace        = try(var.argo_rollouts.namespace, "argo-rollouts")
   create_namespace = try(var.argo_rollouts.create_namespace, true)
   chart            = try(var.argo_rollouts.chart, "argo-rollouts")
-  chart_version    = try(var.argo_rollouts.chart_version, "2.31.3")
+  chart_version    = try(var.argo_rollouts.chart_version, "2.34.3")
   repository       = try(var.argo_rollouts.repository, "https://argoproj.github.io/argo-helm")
   values           = try(var.argo_rollouts.values, [])
 
@@ -140,7 +139,7 @@ module "argo_workflows" {
   namespace        = try(var.argo_workflows.namespace, "argo-workflows")
   create_namespace = try(var.argo_workflows.create_namespace, true)
   chart            = try(var.argo_workflows.chart, "argo-workflows")
-  chart_version    = try(var.argo_workflows.chart_version, "0.36.1")
+  chart_version    = try(var.argo_workflows.chart_version, "0.40.14")
   repository       = try(var.argo_workflows.repository, "https://argoproj.github.io/argo-helm")
   values           = try(var.argo_workflows.values, [])
 
@@ -191,13 +190,12 @@ module "argocd" {
   create_release = var.create_kubernetes_resources
 
   # https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/Chart.yaml
-  # (there is no official helm chart for argocd)
   name             = try(var.argocd.name, "argo-cd")
   description      = try(var.argocd.description, "A Helm chart to install the ArgoCD")
   namespace        = try(var.argocd.namespace, "argocd")
   create_namespace = try(var.argocd.create_namespace, true)
   chart            = try(var.argocd.chart, "argo-cd")
-  chart_version    = try(var.argocd.chart_version, "5.42.1")
+  chart_version    = try(var.argocd.chart_version, "5.55.0") # TODO - v6.x
   repository       = try(var.argocd.repository, "https://argoproj.github.io/argo-helm")
   values           = try(var.argocd.values, [])
 
@@ -244,14 +242,16 @@ module "argo_events" {
 
   create = var.enable_argo_events
 
+  # Disable helm release
+  create_release = var.create_kubernetes_resources
+
   # https://github.com/argoproj/argo-helm/tree/main/charts/argo-events
-  # (there is no official helm chart for argo-events)
   name             = try(var.argo_events.name, "argo-events")
   description      = try(var.argo_events.description, "A Helm chart to install the Argo Events")
   namespace        = try(var.argo_events.namespace, "argo-events")
   create_namespace = try(var.argo_events.create_namespace, true)
   chart            = try(var.argo_events.chart, "argo-events")
-  chart_version    = try(var.argo_events.chart_version, "2.4.0")
+  chart_version    = try(var.argo_events.chart_version, "2.4.3")
   repository       = try(var.argo_events.repository, "https://argoproj.github.io/argo-helm")
   values           = try(var.argo_events.values, [])
 
@@ -312,7 +312,7 @@ module "aws_cloudwatch_metrics" {
   namespace        = local.aws_cloudwatch_metrics_namespace
   create_namespace = try(var.aws_cloudwatch_metrics.create_namespace, true)
   chart            = try(var.aws_cloudwatch_metrics.chart, "aws-cloudwatch-metrics")
-  chart_version    = try(var.aws_cloudwatch_metrics.chart_version, "0.0.9")
+  chart_version    = try(var.aws_cloudwatch_metrics.chart_version, "0.0.10")
   repository       = try(var.aws_cloudwatch_metrics.repository, "https://aws.github.io/eks-charts")
   values           = try(var.aws_cloudwatch_metrics.values, [])
 
@@ -481,7 +481,7 @@ module "aws_efs_csi_driver" {
   namespace        = local.aws_efs_csi_driver_namespace
   create_namespace = try(var.aws_efs_csi_driver.create_namespace, false)
   chart            = try(var.aws_efs_csi_driver.chart, "aws-efs-csi-driver")
-  chart_version    = try(var.aws_efs_csi_driver.chart_version, "2.4.8")
+  chart_version    = try(var.aws_efs_csi_driver.chart_version, "2.5.6")
   repository       = try(var.aws_efs_csi_driver.repository, "https://kubernetes-sigs.github.io/aws-efs-csi-driver/")
   values           = try(var.aws_efs_csi_driver.values, [])
 
@@ -658,7 +658,7 @@ module "aws_for_fluentbit" {
   namespace        = local.aws_for_fluentbit_namespace
   create_namespace = try(var.aws_for_fluentbit.create_namespace, false)
   chart            = try(var.aws_for_fluentbit.chart, "aws-for-fluent-bit")
-  chart_version    = try(var.aws_for_fluentbit.chart_version, "0.1.30")
+  chart_version    = try(var.aws_for_fluentbit.chart_version, "0.1.32")
   repository       = try(var.aws_for_fluentbit.repository, "https://aws.github.io/eks-charts")
   values           = try(var.aws_for_fluentbit.values, [])
 
@@ -992,7 +992,7 @@ data "aws_iam_policy_document" "aws_fsx_csi_driver" {
 
   statement {
     sid       = "AllowCreateServiceLinkedRoles"
-    resources = ["arn:${local.partition}:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.${local.dns_suffix}/*"]
+    resources = ["arn:${local.partition}:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.${data.aws_partition.current.dns_suffix}/*"]
 
     actions = [
       "iam:CreateServiceLinkedRole",
@@ -1009,7 +1009,7 @@ data "aws_iam_policy_document" "aws_fsx_csi_driver" {
     condition {
       test     = "StringLike"
       variable = "iam:AWSServiceName"
-      values   = ["fsx.${local.dns_suffix}"]
+      values   = ["fsx.amazonaws.com"]
     }
   }
 
@@ -1054,7 +1054,7 @@ module "aws_fsx_csi_driver" {
   namespace        = local.aws_fsx_csi_driver_namespace
   create_namespace = try(var.aws_fsx_csi_driver.create_namespace, false)
   chart            = try(var.aws_fsx_csi_driver.chart, "aws-fsx-csi-driver")
-  chart_version    = try(var.aws_fsx_csi_driver.chart_version, "1.7.0")
+  chart_version    = try(var.aws_fsx_csi_driver.chart_version, "1.9.0")
   repository       = try(var.aws_fsx_csi_driver.repository, "https://kubernetes-sigs.github.io/aws-fsx-csi-driver/")
   values           = try(var.aws_fsx_csi_driver.values, [])
 
@@ -1155,7 +1155,7 @@ data "aws_iam_policy_document" "aws_load_balancer_controller" {
     condition {
       test     = "StringEquals"
       variable = "iam:AWSServiceName"
-      values   = ["elasticloadbalancing.${local.dns_suffix}"]
+      values   = ["elasticloadbalancing.amazonaws.com"]
     }
   }
 
@@ -1184,6 +1184,7 @@ data "aws_iam_policy_document" "aws_load_balancer_controller" {
       "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetHealth",
       "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTrustStores",
     ]
     resources = ["*"]
   }
@@ -1417,7 +1418,7 @@ module "aws_load_balancer_controller" {
   # namespace creation is false here as kube-system already exists by default
   create_namespace = try(var.aws_load_balancer_controller.create_namespace, false)
   chart            = try(var.aws_load_balancer_controller.chart, "aws-load-balancer-controller")
-  chart_version    = try(var.aws_load_balancer_controller.chart_version, "1.6.0")
+  chart_version    = try(var.aws_load_balancer_controller.chart_version, "1.7.1")
   repository       = try(var.aws_load_balancer_controller.repository, "https://aws.github.io/eks-charts")
   values           = try(var.aws_load_balancer_controller.values, [])
 
@@ -1532,8 +1533,8 @@ module "aws_node_termination_handler_sqs" {
         {
           type = "Service"
           identifiers = [
-            "events.${local.dns_suffix}",
-            "sqs.${local.dns_suffix}",
+            "events.amazonaws.com",
+            "sqs.amazonaws.com",
           ]
         }
       ]
@@ -1672,7 +1673,7 @@ module "aws_node_termination_handler" {
         value = local.region
       },
       { name  = "queueURL"
-        value = module.aws_node_termination_handler_sqs.queue_url
+        value = try(module.aws_node_termination_handler_sqs.queue_url, "")
       },
       {
         name  = "enableSqsTerminationDraining"
@@ -1754,7 +1755,7 @@ module "aws_privateca_issuer" {
   namespace        = local.aws_privateca_issuer_namespace
   create_namespace = try(var.aws_privateca_issuer.create_namespace, false)
   chart            = try(var.aws_privateca_issuer.chart, "aws-privateca-issuer")
-  chart_version    = try(var.aws_privateca_issuer.chart_version, "v1.2.5")
+  chart_version    = try(var.aws_privateca_issuer.chart_version, "v1.2.7")
   repository       = try(var.aws_privateca_issuer.repository, "https://cert-manager.github.io/aws-privateca-issuer")
   values           = try(var.aws_privateca_issuer.values, [])
 
@@ -1872,7 +1873,7 @@ module "cert_manager" {
   namespace        = local.cert_manager_namespace
   create_namespace = try(var.cert_manager.create_namespace, true)
   chart            = try(var.cert_manager.chart, "cert-manager")
-  chart_version    = try(var.cert_manager.chart_version, "v1.12.3")
+  chart_version    = try(var.cert_manager.chart_version, "v1.14.3")
   repository       = try(var.cert_manager.repository, "https://charts.jetstack.io")
   values           = try(var.cert_manager.values, [])
 
@@ -1963,9 +1964,10 @@ locals {
     "1.23" = "v1.23.1"
     "1.24" = "v1.24.3"
     "1.25" = "v1.25.3"
-    "1.26" = "v1.26.4"
-    "1.27" = "v1.27.3"
-    "1.28" = "v1.28.0"
+    "1.26" = "v1.26.6"
+    "1.27" = "v1.27.5"
+    "1.28" = "v1.28.2"
+    "1.29" = "v1.29.0"
   }
 }
 
@@ -2024,7 +2026,7 @@ module "cluster_autoscaler" {
   namespace        = local.cluster_autoscaler_namespace
   create_namespace = try(var.cluster_autoscaler.create_namespace, false)
   chart            = try(var.cluster_autoscaler.chart, "cluster-autoscaler")
-  chart_version    = try(var.cluster_autoscaler.chart_version, "9.29.1")
+  chart_version    = try(var.cluster_autoscaler.chart_version, "9.35.0")
   repository       = try(var.cluster_autoscaler.repository, "https://kubernetes.github.io/autoscaler")
   values           = try(var.cluster_autoscaler.values, [])
 
@@ -2250,7 +2252,7 @@ module "external_dns" {
   namespace        = local.external_dns_namespace
   create_namespace = try(var.external_dns.create_namespace, true)
   chart            = try(var.external_dns.chart, "external-dns")
-  chart_version    = try(var.external_dns.chart_version, "1.13.0")
+  chart_version    = try(var.external_dns.chart_version, "1.14.3")
   repository       = try(var.external_dns.repository, "https://kubernetes-sigs.github.io/external-dns/")
   values           = try(var.external_dns.values, ["provider: aws"])
 
@@ -2402,7 +2404,7 @@ module "external_secrets" {
   namespace        = local.external_secrets_namespace
   create_namespace = try(var.external_secrets.create_namespace, true)
   chart            = try(var.external_secrets.chart, "external-secrets")
-  chart_version    = try(var.external_secrets.chart_version, "0.9.1")
+  chart_version    = try(var.external_secrets.chart_version, "0.9.13")
   repository       = try(var.external_secrets.repository, "https://charts.external-secrets.io")
   values           = try(var.external_secrets.values, [])
 
@@ -2437,6 +2439,10 @@ module "external_secrets" {
     {
       name  = "serviceAccount.name"
       value = local.external_secrets_service_account
+    },
+    {
+      name  = "webhook.port"
+      value = var.enable_eks_fargate ? "9443" : "10250"
     }],
     try(var.external_secrets.set, [])
   )
@@ -2635,7 +2641,7 @@ module "gatekeeper" {
   namespace        = try(var.gatekeeper.namespace, "gatekeeper-system")
   create_namespace = try(var.gatekeeper.create_namespace, true)
   chart            = try(var.gatekeeper.chart, "gatekeeper")
-  chart_version    = try(var.gatekeeper.chart_version, "3.12.0")
+  chart_version    = try(var.gatekeeper.chart_version, "3.15.0")
   repository       = try(var.gatekeeper.repository, "https://open-policy-agent.github.io/gatekeeper/charts")
   values           = try(var.gatekeeper.values, [])
 
@@ -2691,7 +2697,7 @@ module "ingress_nginx" {
   namespace        = try(var.ingress_nginx.namespace, "ingress-nginx")
   create_namespace = try(var.ingress_nginx.create_namespace, true)
   chart            = try(var.ingress_nginx.chart, "ingress-nginx")
-  chart_version    = try(var.ingress_nginx.chart_version, "4.7.1")
+  chart_version    = try(var.ingress_nginx.chart_version, "4.10.0")
   repository       = try(var.ingress_nginx.repository, "https://kubernetes.github.io/ingress-nginx")
   values           = try(var.ingress_nginx.values, [])
 
@@ -2736,11 +2742,14 @@ locals {
   karpenter_service_account_name    = try(var.karpenter.service_account_name, "karpenter")
   karpenter_enable_spot_termination = var.enable_karpenter && var.karpenter_enable_spot_termination
 
-  create_karpenter_node_iam_role       = var.enable_karpenter && try(var.karpenter_node.create_iam_role, true)
-  karpenter_node_iam_role_arn          = try(aws_iam_role.karpenter[0].arn, var.karpenter_node.iam_role_arn, "")
-  karpenter_node_iam_role_name         = try(var.karpenter_node.iam_role_name, "karpenter-${var.cluster_name}")
-  karpenter_node_instance_profile_name = try(aws_iam_instance_profile.karpenter[0].name, var.karpenter_node.instance_profile_name, "")
-  karpenter_namespace                  = try(var.karpenter.namespace, "karpenter")
+  create_karpenter_node_iam_role = var.enable_karpenter && try(var.karpenter_node.create_iam_role, true)
+  karpenter_node_iam_role_arn    = try(aws_iam_role.karpenter[0].arn, var.karpenter_node.iam_role_arn, "")
+  karpenter_node_iam_role_name   = try(var.karpenter_node.iam_role_name, "karpenter-${var.cluster_name}")
+  # This is the name used when the instance profile is created by the module
+  input_karpenter_node_instance_profile_name = try(var.karpenter_node.instance_profile_name, local.karpenter_node_iam_role_name)
+  # This is the name passed to the Karpenter Helm chart - either the profile the module creates, or one provided by the user
+  output_karpenter_node_instance_profile_name = try(aws_iam_instance_profile.karpenter[0].name, var.karpenter_node.instance_profile_name, "")
+  karpenter_namespace                         = try(var.karpenter.namespace, "karpenter")
 
   karpenter_set = [
     # TODO - remove at next breaking change
@@ -2759,7 +2768,7 @@ locals {
     },
     {
       name  = "settings.aws.defaultInstanceProfile"
-      value = var.karpenter_enable_instance_profile_creation ? null : local.karpenter_node_instance_profile_name
+      value = var.karpenter_enable_instance_profile_creation ? null : local.output_karpenter_node_instance_profile_name
     },
     # Post 0.32.x
     {
@@ -2777,7 +2786,7 @@ locals {
     # TODO - this is not valid but being discussed as a re-addition. TBD on what the schema will be though
     # {
     #   name  = "settings.defaultInstanceProfile"
-    #   value = var.karpenter_enable_instance_profile_creation ? null : local.karpenter_node_instance_profile_name
+    #   value = var.karpenter_enable_instance_profile_creation ? null : local.output_karpenter_node_instance_profile_name
     # },
     # Agnostic of version difference
     {
@@ -2848,8 +2857,8 @@ data "aws_iam_policy_document" "karpenter" {
 
     condition {
       test     = "StringLike"
-      variable = "ec2:ResourceTag/${try(var.karpenter.irsa_tag_key, "Name")}"
-      values   = try(var.karpenter.irsa_tag_values, ["*karpenter*", "*compute.internal", "*ec2.internal"])
+      variable = "ec2:ResourceTag/kubernetes.io/cluster/${var.cluster_name}"
+      values   = ["*"]
     }
   }
 
@@ -2906,8 +2915,8 @@ module "karpenter_sqs" {
         {
           type = "Service"
           identifiers = [
-            "events.${local.dns_suffix}",
-            "sqs.${local.dns_suffix}",
+            "events.amazonaws.com",
+            "sqs.amazonaws.com",
           ]
         }
       ]
@@ -2947,7 +2956,7 @@ data "aws_iam_policy_document" "karpenter_assume_role" {
 
     principals {
       type        = "Service"
-      identifiers = ["ec2.${local.dns_suffix}"]
+      identifiers = ["ec2.amazonaws.com"]
     }
   }
 }
@@ -2989,8 +2998,8 @@ resource "aws_iam_role_policy_attachment" "additional" {
 resource "aws_iam_instance_profile" "karpenter" {
   count = var.enable_karpenter && try(var.karpenter_node.create_instance_profile, true) ? 1 : 0
 
-  name        = try(var.karpenter_node.iam_role_use_name_prefix, true) ? null : local.karpenter_node_iam_role_name
-  name_prefix = try(var.karpenter_node.iam_role_use_name_prefix, true) ? "${local.karpenter_node_iam_role_name}-" : null
+  name        = try(var.karpenter_node.iam_role_use_name_prefix, true) ? null : local.input_karpenter_node_instance_profile_name
+  name_prefix = try(var.karpenter_node.iam_role_use_name_prefix, true) ? "${local.input_karpenter_node_instance_profile_name}-" : null
   path        = try(var.karpenter_node.iam_role_path, null)
   role        = try(aws_iam_role.karpenter[0].name, var.karpenter_node.iam_role_name, "")
 
@@ -3012,7 +3021,7 @@ module "karpenter" {
   namespace        = local.karpenter_namespace
   create_namespace = try(var.karpenter.create_namespace, true)
   chart            = try(var.karpenter.chart, "karpenter")
-  chart_version    = try(var.karpenter.chart_version, "v0.32.1")
+  chart_version    = try(var.karpenter.chart_version, "0.35.0")
   repository       = try(var.karpenter.repository, "oci://public.ecr.aws/karpenter")
   values           = try(var.karpenter.values, [])
 
@@ -3107,7 +3116,7 @@ module "kube_prometheus_stack" {
   namespace        = try(var.kube_prometheus_stack.namespace, "kube-prometheus-stack")
   create_namespace = try(var.kube_prometheus_stack.create_namespace, true)
   chart            = try(var.kube_prometheus_stack.chart, "kube-prometheus-stack")
-  chart_version    = try(var.kube_prometheus_stack.chart_version, "48.2.3")
+  chart_version    = try(var.kube_prometheus_stack.chart_version, "48.2.3") # TODO 56.x
   repository       = try(var.kube_prometheus_stack.repository, "https://prometheus-community.github.io/helm-charts")
   values           = try(var.kube_prometheus_stack.values, [])
 
@@ -3163,7 +3172,7 @@ module "metrics_server" {
   namespace        = try(var.metrics_server.namespace, "kube-system")
   create_namespace = try(var.metrics_server.create_namespace, false)
   chart            = try(var.metrics_server.chart, "metrics-server")
-  chart_version    = try(var.metrics_server.chart_version, "3.11.0")
+  chart_version    = try(var.metrics_server.chart_version, "3.12.0")
   repository       = try(var.metrics_server.repository, "https://kubernetes-sigs.github.io/metrics-server/")
   values           = try(var.metrics_server.values, [])
 
@@ -3219,7 +3228,7 @@ module "secrets_store_csi_driver" {
   namespace        = try(var.secrets_store_csi_driver.namespace, "kube-system")
   create_namespace = try(var.secrets_store_csi_driver.create_namespace, false)
   chart            = try(var.secrets_store_csi_driver.chart, "secrets-store-csi-driver")
-  chart_version    = try(var.secrets_store_csi_driver.chart_version, "1.3.4")
+  chart_version    = try(var.secrets_store_csi_driver.chart_version, "1.4.1")
   repository       = try(var.secrets_store_csi_driver.repository, "https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts")
   values           = try(var.secrets_store_csi_driver.values, [])
 
@@ -3275,7 +3284,7 @@ module "secrets_store_csi_driver_provider_aws" {
   namespace        = try(var.secrets_store_csi_driver_provider_aws.namespace, "kube-system")
   create_namespace = try(var.secrets_store_csi_driver_provider_aws.create_namespace, false)
   chart            = try(var.secrets_store_csi_driver_provider_aws.chart, "secrets-store-csi-driver-provider-aws")
-  chart_version    = try(var.secrets_store_csi_driver_provider_aws.chart_version, "0.3.4")
+  chart_version    = try(var.secrets_store_csi_driver_provider_aws.chart_version, "0.3.6")
   repository       = try(var.secrets_store_csi_driver_provider_aws.repository, "https://aws.github.io/secrets-store-csi-driver-provider-aws")
   values           = try(var.secrets_store_csi_driver_provider_aws.values, [])
 
@@ -3627,7 +3636,7 @@ module "velero" {
   namespace        = local.velero_namespace
   create_namespace = try(var.velero.create_namespace, true)
   chart            = try(var.velero.chart, "velero")
-  chart_version    = try(var.velero.chart_version, "3.2.0") # TODO - 4.0.0 is out
+  chart_version    = try(var.velero.chart_version, "3.2.0") # TODO - 6.0
   repository       = try(var.velero.repository, "https://vmware-tanzu.github.io/helm-charts/")
   values           = try(var.velero.values, [])
 
@@ -3750,7 +3759,7 @@ module "vpa" {
   namespace        = try(var.vpa.namespace, "vpa")
   create_namespace = try(var.vpa.create_namespace, true)
   chart            = try(var.vpa.chart, "vpa")
-  chart_version    = try(var.vpa.chart_version, "1.7.5") # TODO - 2.0.0 is out
+  chart_version    = try(var.vpa.chart_version, "1.7.5") # TODO - 4.0
   repository       = try(var.vpa.repository, "https://charts.fairwinds.com/stable")
   values           = try(var.vpa.values, [])
 
@@ -3842,7 +3851,7 @@ module "aws_gateway_api_controller" {
   namespace        = local.aws_gateway_api_controller_namespace
   create_namespace = try(var.aws_gateway_api_controller.create_namespace, true)
   chart            = try(var.aws_gateway_api_controller.chart, "aws-gateway-controller-chart")
-  chart_version    = try(var.aws_gateway_api_controller.chart_version, "v0.0.16")
+  chart_version    = try(var.aws_gateway_api_controller.chart_version, "v0.0.18") # TODO - 1.0
   repository       = try(var.aws_gateway_api_controller.repository, "oci://public.ecr.aws/aws-application-networking-k8s")
   values           = try(var.aws_gateway_api_controller.values, [])
 
@@ -3914,4 +3923,119 @@ module "aws_gateway_api_controller" {
   }
 
   tags = var.tags
+}
+
+################################################################################
+# Bottlerocket Update Operator
+################################################################################
+
+locals {
+  wait_for_cert_manager = try(var.cert_manager.wait, false) ? [module.cert_manager] : []
+}
+
+module "bottlerocket_shadow" {
+  source  = "aws-ia/eks-blueprints-addon/aws"
+  version = "~> 1.1.1"
+
+  create = var.enable_bottlerocket_update_operator
+
+  # Disable helm release
+  create_release = var.create_kubernetes_resources
+
+  # https://github.com/bottlerocket-os/bottlerocket-update-operator/blob/develop/deploy/charts/bottlerocket-shadow/Chart.yaml
+  name          = try(var.bottlerocket_shadow.name, "brupop-crds")
+  description   = try(var.bottlerocket_shadow.description, "CRDs for Bottlerocket Update Operator")
+  chart         = try(var.bottlerocket_shadow.chart, "bottlerocket-shadow")
+  chart_version = try(var.bottlerocket_shadow.chart_version, "1.0.0")
+  repository    = try(var.bottlerocket_shadow.repository, "https://bottlerocket-os.github.io/bottlerocket-update-operator/")
+  values        = try(var.bottlerocket_shadow.values, [])
+
+  timeout                    = try(var.bottlerocket_shadow.timeout, null)
+  repository_key_file        = try(var.bottlerocket_shadow.repository_key_file, null)
+  repository_cert_file       = try(var.bottlerocket_shadow.repository_cert_file, null)
+  repository_ca_file         = try(var.bottlerocket_shadow.repository_ca_file, null)
+  repository_username        = try(var.bottlerocket_shadow.repository_username, null)
+  repository_password        = try(var.bottlerocket_shadow.repository_password, null)
+  devel                      = try(var.bottlerocket_shadow.devel, null)
+  verify                     = try(var.bottlerocket_shadow.verify, null)
+  keyring                    = try(var.bottlerocket_shadow.keyring, null)
+  disable_webhooks           = try(var.bottlerocket_shadow.disable_webhooks, null)
+  reuse_values               = try(var.bottlerocket_shadow.reuse_values, null)
+  reset_values               = try(var.bottlerocket_shadow.reset_values, null)
+  force_update               = try(var.bottlerocket_shadow.force_update, null)
+  recreate_pods              = try(var.bottlerocket_shadow.recreate_pods, null)
+  cleanup_on_fail            = try(var.bottlerocket_shadow.cleanup_on_fail, null)
+  max_history                = try(var.bottlerocket_shadow.max_history, null)
+  atomic                     = try(var.bottlerocket_shadow.atomic, null)
+  skip_crds                  = try(var.bottlerocket_shadow.skip_crds, null)
+  render_subchart_notes      = try(var.bottlerocket_shadow.render_subchart_notes, null)
+  disable_openapi_validation = try(var.bottlerocket_shadow.disable_openapi_validation, null)
+  wait                       = try(var.bottlerocket_shadow.wait, false)
+  wait_for_jobs              = try(var.bottlerocket_shadow.wait_for_jobs, null)
+  dependency_update          = try(var.bottlerocket_shadow.dependency_update, null)
+  replace                    = try(var.bottlerocket_shadow.replace, null)
+  lint                       = try(var.bottlerocket_shadow.lint, null)
+
+  postrender    = try(var.bottlerocket_shadow.postrender, [])
+  set           = try(var.bottlerocket_shadow.set, [])
+  set_sensitive = try(var.bottlerocket_shadow.set_sensitive, [])
+
+  depends_on = [local.wait_for_cert_manager]
+
+  tags = var.tags
+}
+
+module "bottlerocket_update_operator" {
+  source  = "aws-ia/eks-blueprints-addon/aws"
+  version = "~> 1.1.1"
+
+  create = var.enable_bottlerocket_update_operator
+
+  # Disable helm release
+  create_release = var.create_kubernetes_resources
+
+  # https://github.com/bottlerocket-os/bottlerocket-update-operator/blob/develop/deploy/charts/bottlerocket-update-operator/Chart.yaml
+  name             = try(var.bottlerocket_update_operator.name, "brupop-operator")
+  description      = try(var.bottlerocket_update_operator.description, "A Helm chart for Bottlerocket Update Operator")
+  chart            = try(var.bottlerocket_update_operator.chart, "bottlerocket-update-operator")
+  chart_version    = try(var.bottlerocket_update_operator.version, "1.3.0")
+  namespace        = try(var.bottlerocket_update_operator.namespace, "brupop-bottlerocket-aws")
+  create_namespace = try(var.bottlerocket_update_operator.create_namespace, true)
+  repository       = try(var.bottlerocket_update_operator.repository, "https://bottlerocket-os.github.io/bottlerocket-update-operator/")
+  values           = try(var.bottlerocket_update_operator.values, [])
+
+  timeout                    = try(var.bottlerocket_update_operator.timeout, null)
+  repository_key_file        = try(var.bottlerocket_update_operator.repository_key_file, null)
+  repository_cert_file       = try(var.bottlerocket_update_operator.repository_cert_file, null)
+  repository_ca_file         = try(var.bottlerocket_update_operator.repository_ca_file, null)
+  repository_username        = try(var.bottlerocket_update_operator.repository_username, null)
+  repository_password        = try(var.bottlerocket_update_operator.repository_password, null)
+  devel                      = try(var.bottlerocket_update_operator.devel, null)
+  verify                     = try(var.bottlerocket_update_operator.verify, null)
+  keyring                    = try(var.bottlerocket_update_operator.keyring, null)
+  disable_webhooks           = try(var.bottlerocket_update_operator.disable_webhooks, null)
+  reuse_values               = try(var.bottlerocket_update_operator.reuse_values, null)
+  reset_values               = try(var.bottlerocket_update_operator.reset_values, null)
+  force_update               = try(var.bottlerocket_update_operator.force_update, null)
+  recreate_pods              = try(var.bottlerocket_update_operator.recreate_pods, null)
+  cleanup_on_fail            = try(var.bottlerocket_update_operator.cleanup_on_fail, null)
+  max_history                = try(var.bottlerocket_update_operator.max_history, null)
+  atomic                     = try(var.bottlerocket_update_operator.atomic, null)
+  skip_crds                  = try(var.bottlerocket_update_operator.skip_crds, null)
+  render_subchart_notes      = try(var.bottlerocket_update_operator.render_subchart_notes, null)
+  disable_openapi_validation = try(var.bottlerocket_update_operator.disable_openapi_validation, null)
+  wait                       = try(var.bottlerocket_update_operator.wait, false)
+  wait_for_jobs              = try(var.bottlerocket_update_operator.wait_for_jobs, null)
+  dependency_update          = try(var.bottlerocket_update_operator.dependency_update, null)
+  replace                    = try(var.bottlerocket_update_operator.replace, null)
+  lint                       = try(var.bottlerocket_update_operator.lint, null)
+
+  postrender    = try(var.bottlerocket_update_operator.postrender, [])
+  set           = try(var.bottlerocket_update_operator.set, [])
+  set_sensitive = try(var.bottlerocket_update_operator.set_sensitive, [])
+
+  tags = var.tags
+
+  # https://github.com/bottlerocket-os/bottlerocket-update-operator/tree/develop/deploy/charts/bottlerocket-update-operator
+  depends_on = [module.bottlerocket_shadow]
 }

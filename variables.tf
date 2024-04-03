@@ -36,6 +36,12 @@ variable "create_delay_dependencies" {
   default     = []
 }
 
+variable "enable_eks_fargate" {
+  description = "Identifies whether or not respective addons should be modified to support deployment on EKS Fargate"
+  type        = bool
+  default     = false
+}
+
 ################################################################################
 # (Generic) Helm Release
 ################################################################################
@@ -584,6 +590,28 @@ variable "enable_aws_gateway_api_controller" {
 
 variable "aws_gateway_api_controller" {
   description = "AWS Gateway API Controller add-on configuration values"
+  type        = any
+  default     = {}
+}
+
+################################################################################
+# Bottlerocket Update Operator
+################################################################################
+
+variable "enable_bottlerocket_update_operator" {
+  description = "Enable Bottlerocket Update Operator add-on"
+  type        = bool
+  default     = false
+}
+
+variable "bottlerocket_update_operator" {
+  description = "Bottlerocket Update Operator add-on configuration values"
+  type        = any
+  default     = {}
+}
+
+variable "bottlerocket_shadow" {
+  description = "Bottlerocket Update Operator CRDs configuration values"
   type        = any
   default     = {}
 }

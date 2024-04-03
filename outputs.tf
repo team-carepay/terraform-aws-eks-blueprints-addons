@@ -168,6 +168,14 @@ output "aws_gateway_api_controller" {
   value       = module.aws_gateway_api_controller
 }
 
+output "bottlerocket_update_operator" {
+  description = "Map of attributes of the Helm release and IRSA created"
+  value = {
+    operator = module.bottlerocket_update_operator
+    crds     = module.bottlerocket_shadow
+  }
+}
+
 ################################################################################
 # (Generic) Helm Release
 ################################################################################
@@ -264,7 +272,7 @@ output "gitops_metadata" {
       namespace                  = local.karpenter_namespace
       service_account            = local.karpenter_service_account_name
       sqs_queue_name             = module.karpenter_sqs.queue_name
-      node_instance_profile_name = local.karpenter_node_instance_profile_name
+      node_instance_profile_name = local.output_karpenter_node_instance_profile_name
       node_iam_role_name         = try(aws_iam_role.karpenter[0].name, "")
       } : "karpenter_${k}" => v if var.enable_karpenter
     },
