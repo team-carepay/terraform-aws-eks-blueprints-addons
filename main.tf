@@ -3315,7 +3315,10 @@ module "secrets_store_csi_driver_provider_aws" {
 ################################################################################
 # HashiCorp Vault
 ################################################################################
-
+locals {
+  vault_service_account   = try(var.vault.service_account_name, "vault-sa")
+  vault_namespace         = try(var.vault.namespace, "vault")
+}
 data "aws_iam_policy_document" "vault-bucket-policy" {
   count = var.enable_vault ? 1 : 0
   statement {
@@ -3541,7 +3544,7 @@ module "vault" {
     this = {
       provider_arn = local.oidc_provider_arn
       # namespace is inherited from chart
-      service_account = try(var.vault.service_account_name, "vault")
+      service_account = local.vault_service_account
     }
   }
 

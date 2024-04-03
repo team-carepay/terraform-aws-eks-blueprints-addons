@@ -268,6 +268,17 @@ output "gitops_metadata" {
       node_iam_role_name         = try(aws_iam_role.karpenter[0].name, "")
       } : "karpenter_${k}" => v if var.enable_karpenter
     },
+    {
+      for k, v in {
+        iam_role_arn    = module.vault.iam_role_arn
+        namespace       = local.vault_namespace
+        service_account = local.vault_service_account
+        s3_bucket_arn   = try(aws_s3_bucket.vault[0].arn, "")
+        s3_bucket_name  = try(aws_s3_bucket.vault[0].id, "")
+        kms_key_arn     = try(aws_kms_key.vault[0].arn, "")
+        kms_key_id      = try(aws_kms_key.vault[0].key_id, "")
+        } : "vault_${k}" => v if var.enable_vault
+    },
     { for k, v in {
       iam_role_arn    = module.velero.iam_role_arn
       namespace       = local.velero_namespace
